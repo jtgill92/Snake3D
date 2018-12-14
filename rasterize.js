@@ -2,7 +2,7 @@
 
 /* assignment specific globals */
 const INPUT_TRIANGLES_URL = "https://ncsucgclass.github.io/prog4/triangles.json"; // triangles file loc
-var defaultEye = vec3.fromValues(0.5,0.5,-0.5); // default eye position in world space
+var defaultEye = vec3.fromValues(0.5,0.5,0.3); // default eye position in world space
 var defaultCenter = vec3.fromValues(0.5,0.5,0.5); // default view direction in world space
 var defaultUp = vec3.fromValues(0,1,0); // default view up vector
 var lightAmbient = vec3.fromValues(1,1,1); // default light ambient emission
@@ -51,7 +51,286 @@ var opaqueTriangles = [];
 var transparentTriangles = [];
 
 /* Snake 3D */
-const INPUT_GAMEBOARD_URL = "https://ncsucgclass.github.io/prog4/gameboard.json"; // gameboard file loc
+const INPUT_GAMEBOARD_URL = "https://jtgill92.github.io/Snake3D/gameboard.json"; // gameboard file loc
+const boardSize = 20;
+var gameboard = [];
+var snake1 = [];
+var snake2 = [];
+var food = [];
+var initialTime;
+var elapsedTime;
+var animationRate = 90;
+var AICount = 0;
+
+function initGame() {
+    initialTime = (new Date).getTime();
+    for(var j = 0; j < boardSize; j++) {
+        gameboard[j] = [];
+        for(var i = 0; i < boardSize; i++) {
+            gameboard[j][i] = [0,0];
+        }
+    }
+    gameboard.model = inputTriangles[0];
+
+    snake1 = [[4,1],[3,1],[2,1]];
+    snake1.model = inputTriangles[1];
+    snake1.alive = true;
+
+    for(var i = 0; i < snake1.length; i++) {
+        gameboard[snake1[i][1]][snake1[i][0]] = [1,0];
+    }
+
+    snake2 = [[7,9],[8,9],[9,9]];
+    snake2.model = inputTriangles[2];
+    snake2.alive = true;
+
+    for(var i = 0; i < snake2.length; i++) {
+        gameboard[snake2[i][1]][snake2[i][0]] = [-1,0];
+    }
+
+    food[0] = [Math.floor(boardSize/2), Math.floor(boardSize/2)];
+    //food[0] = [0,0]
+    food.model = inputTriangles[3];
+    food.alive = true;
+}
+
+function update() {
+    if(!food.alive) {respawnFood();}
+    if(!snake1.alive) {respawnSnake1();}
+    if(!snake2.alive) {respawnSnake2();}
+    var snakes = [snake1, snake2];
+    for(var i = 0; i < 2; i++) {
+        var snake = snakes[i];
+        var other = snakes[1-i];
+        if(snake.alive) {
+            var tail = [snake[snake.length - 1][0],snake[snake.length - 1][1]];
+            for(var j = 0; j < snake.length; j++) {
+                var x = snake[j][0];
+                var y = snake[j][1];
+                
+                var dir = getDir(x,y);
+                snake[j] = [x + dir[0],y + dir[1]];
+            }
+            if(outOfBounds(snake) || collision(snake,other) || selfCollision(snake)) {
+                snake.alive = false;
+                gameboard[tail[1]][tail[0]] = [0,0];
+                continue;
+            }
+            gameboard[snake[0][1]][snake[0][0]][0] = gameboard[snake[1][1]][snake[1][0]][0];
+            gameboard[snake[0][1]][snake[0][0]][1] = gameboard[snake[1][1]][snake[1][0]][1];
+
+            if(snake[0][0] == food[0][0] && snake[0][1] == food[0][1]) {
+                food.alive = false;
+                snake[snake.length] = tail;
+            } else {
+                gameboard[tail[1]][tail[0]] = [0,0];
+            }
+        }
+    }
+    if(outOfBounds(snake1)) {
+        snake1.alive = false;
+    }
+    if(collision(snake1,snake2)) {
+        snake1.alive = false;
+    }
+    if(selfCollision(snake1)) {
+        snake1.alive = false;
+    }
+    if(outOfBounds(snake2)) {
+        snake2.alive = false;
+    }
+    if(collision(snake2,snake1)) {
+        snake2.alive = false;
+    }
+    if(selfCollision(snake2)) {
+        snake2.alive = false;
+    }
+
+    if(!snake1.alive) {
+        for(var j = 1; j < snake1.length; j++) {
+            var x = snake1[j][0];
+            var y = snake1[j][1];
+            if(!(x < 0 || x > boardSize - 1 ||
+                y < 0 || y > boardSize - 1)) {
+                gameboard[y][x] = [0,0]
+            }
+        }
+    }
+
+    if(!snake2.alive) {
+        for(var j = 1; j < snake2.length; j++) {
+            var x = snake2[j][0];
+            var y = snake2[j][1];
+            if(!(x < 0 || x > boardSize - 1 ||
+                y < 0 || y > boardSize - 1)) {
+                gameboard[y][x] = [0,0]
+            }
+        }
+    }
+
+    AICount++;
+
+    if(snake2.alive && AICount > 3) {
+        var x = snake2[0][0];
+        var y = snake2[0][1];
+        var dir = randomDir(x,y);
+        gameboard[y][x] = dir;
+        AICount = 0;
+    }
+}
+
+function respawnSnake1() {
+    snake1 = [[4,1],[3,1],[2,1]];
+    snake1.model = inputTriangles[1];
+    snake1.alive = true;
+
+    for(var i = 0; i < snake1.length; i++) {
+        for(var j = 0; j < snake2.length; j++) {
+        if(snake1[i][0] == snake2[j][0]
+            && snake1[i][1] == snake2[j][1]) {
+                snake1.alive = false;
+            }
+        }
+    }
+    if(snake1.alive){
+    for(var i = 0; i < snake1.length; i++) {
+        gameboard[snake1[i][1]][snake1[i][0]] = [1,0];
+    }}
+}
+
+function respawnSnake2() {
+    snake2 = [[7,9],[8,9],[9,9]];
+    snake2.model = inputTriangles[2];
+    snake2.alive = true;
+
+    for(var i = 0; i < snake2.length; i++) {
+        for(var j = 0; j < snake1.length; j++) {
+        if(snake2[i][0] == snake1[j][0]
+            && snake2[i][1] == snake1[j][1]) {
+                snake2.alive = false;
+            }
+        }
+    }
+    
+
+    if(snake2.alive){
+    for(var i = 0; i < snake2.length; i++) {
+        gameboard[snake2[i][1]][snake2[i][0]] = [-1,0];
+    }}
+}
+
+// fix later for version 2.0!
+function respawnSnake(s1, s2) {
+    var loc = randomLoc;
+    var dir;
+
+    var i = Math.floor(Math.random() * 4) + 1;
+
+    if(i == 1 ){//&& loc[0] < 16) {
+        dir = [1,0];
+    } else if (i == 2){// && loc[1] < 16) {
+        dir = [0,1];
+    } else if (i == 3){ //&& loc[0] > 3) {
+        dir = [-1,0];
+    } else if (i == 4){ //&& loc[1] > 3) {
+        dir = [0,-1];
+    } else {
+        respawnSnake(s1,s2);
+    }
+
+    s1 = [];    
+    s1[0] = [loc[0], loc[1]]
+    s1[1] = [loc[0] - dir[0], loc[1] - dir[1]]
+    s1[2] = [loc[0] - 2*dir[0], loc[1] - 2*dir[1]]
+
+    for(var i = 0; i < 3; i++) {
+        x = s1[i][0];
+        y = s1[i][1];
+        if(x < 0 || x > boardSize - 1 ||
+            y < 0 || y > boardSize - 1) {
+            respawnSnake(s1,s2)
+        }
+        for(var k = 0; k < s2.length; k++) {
+        if(s1[i][0] == s2[k][0]
+            && s1[j][1] == s2[k][1]) {
+                respawnSnake(s1,s2);
+            }
+        }
+    }
+
+    for(var i = 0; i < s1.length; i++) {
+        gameboard[s1[i][1]][s1[i][0]] = dir;
+    }
+    s1.alive = true;
+}
+
+function respawnFood() {
+    var loc = randomLoc();
+
+    food.alive = true;
+    food[0] = loc;
+
+    if(collision(food, snake1) || collision(food, snake2))
+        respawnFood();
+}
+
+function getDir(i,j) {
+    return [gameboard[j][i][0],gameboard[j][i][1]];
+}
+
+function outOfBounds(s) {
+    if(s[0][0] < 0 ||
+        s[0][0] > boardSize - 1  ||
+        s[0][1] < 0 ||
+        s[0][1] > boardSize - 1) {
+        return true;
+    }
+}
+
+function selfCollision(s) {
+    for(var k = 1; k < s.length; k++) {
+        if(s[0][0] == s[k][0]
+            && s[0][1] == s[k][1]) {
+            return true;
+        }
+    }
+}
+
+function collision(s1, s2) {
+    for(var k = 0; k < s2.length; k++) {
+        if(s1[0][0] == s2[k][0]
+            && s1[0][1] == s2[k][1]) {
+            return true;
+        }
+    }
+}
+
+function randomDir() {
+    var x = snake2[0][0];
+    var y = snake2[0][1];
+    var dir = getDir(x,y);
+
+    var i = Math.floor(Math.random() * 4) + 1;
+
+    if(i == 1 && x < 16 && dir[0] == 0) {
+        return [1,0];
+    } else if (i == 2 && y < 16 && dir[1] == 0) {
+        return [0,1];
+    } else if (i == 3 && x > 3 && dir[0] == 0) {
+        return [-1,0];
+    } else if (i == 4 && y > 3 && dir[1] == 0) {
+        return [0,-1];
+    }
+
+    return dir;
+}
+
+function randomLoc() {
+    var x = Math.floor((Math.random() * boardSize));
+    var y = Math.floor((Math.random() * boardSize));
+
+    return [x,y];
+}
 
 // ASSIGNMENT HELPER FUNCTIONS
 
@@ -125,49 +404,95 @@ function handleKeyDown(event) {
 
     switch (event.code) {
         
-        // model selection
+        // move snake
         case "Space": 
-            if (handleKeyDown.modelOn != null)
+            /*if (handleKeyDown.modelOn != null)
                 handleKeyDown.modelOn.on = false; // turn off highlighted model
             handleKeyDown.modelOn = null; // no highlighted model
-            handleKeyDown.whichOn = -1; // nothing highlighted
+            handleKeyDown.whichOn = -1; // nothing highlighted*/
             break;
-        case "ArrowRight": // select next triangle set
-            highlightModel(modelEnum.TRIANGLES,(handleKeyDown.whichOn+1) % numTriangleSets);
+        case "ArrowLeft": // left
+            if (snake1.alive){
+                var x = snake1[0][0];
+                var y = snake1[0][1];
+                var dir = getDir(x,y);
+                if(dir[0] != 1) {
+                    gameboard[y][x] = [-1,0];
+                }
+            }
             break;
-        case "ArrowLeft": // select previous triangle set
-            highlightModel(modelEnum.TRIANGLES,(handleKeyDown.whichOn > 0) ? handleKeyDown.whichOn-1 : numTriangleSets-1);
+        case "ArrowRight": // right
+            if (snake1.alive){
+                var x = snake1[0][0];
+                var y = snake1[0][1];
+                var dir = getDir(x,y);
+                if(dir[0] != -1) {
+                    gameboard[y][x] = [1,0];
+                }
+            }
             break;
-        
+        case "ArrowDown": // down
+            if (snake1.alive){
+                var x = snake1[0][0];
+                var y = snake1[0][1];
+                var dir = getDir(x,y);
+                if(dir[1] != 1) {
+                    gameboard[y][x] = [0,-1];
+                }
+            }
+            break;
+        case "ArrowUp": // up
+            if (snake1.alive) {
+                var x = snake1[0][0];
+                var y = snake1[0][1];
+                var dir = getDir(x,y);
+                if(dir[1] != -1) {
+                    gameboard[y][x] = [0,1];
+                }
+            }
+            break;
             
-        // view change
-        case "KeyA": // translate view left, rotate left with shift
-            Center = vec3.add(Center,Center,vec3.scale(temp,viewRight,viewDelta));
-            if (!event.getModifierState("Shift"))
-                Eye = vec3.add(Eye,Eye,vec3.scale(temp,viewRight,viewDelta));
+        // move snake
+        case "KeyA": // left
+            if (snake1.alive){
+                var x = snake1[0][0];
+                var y = snake1[0][1];
+                var dir = getDir(x,y);
+                if(dir[0] != 1) {
+                    gameboard[y][x] = [-1,0];
+                }
+            }
             break;
-        case "KeyD": // translate view right, rotate right with shift
-            Center = vec3.add(Center,Center,vec3.scale(temp,viewRight,-viewDelta));
-            if (!event.getModifierState("Shift"))
-                Eye = vec3.add(Eye,Eye,vec3.scale(temp,viewRight,-viewDelta));
+        case "KeyD": // right
+            if (snake1.alive) {
+                var x = snake1[0][0];
+                var y = snake1[0][1];
+                var dir = getDir(x,y);
+                if(dir[0] != -1) {
+                    gameboard[y][x] = [1,0];
+                }
+            }
+
             break;
-        case "KeyS": // translate view backward, rotate up with shift
-            if (event.getModifierState("Shift")) {
-                Center = vec3.add(Center,Center,vec3.scale(temp,Up,viewDelta));
-                Up = vec3.cross(Up,viewRight,vec3.subtract(lookAt,Center,Eye)); /* global side effect */
-            } else {
-                Eye = vec3.add(Eye,Eye,vec3.scale(temp,lookAt,-viewDelta));
-                Center = vec3.add(Center,Center,vec3.scale(temp,lookAt,-viewDelta));
-            } // end if shift not pressed
+        case "KeyS": // down
+            if (snake1.alive) {
+                var x = snake1[0][0];
+                var y = snake1[0][1];
+                var dir = getDir(x,y);
+                if(dir[1] != 1) {
+                    gameboard[y][x] = [0,-1];
+                }
+            } 
             break;
-        case "KeyW": // translate view forward, rotate down with shift
-            if (event.getModifierState("Shift")) {
-                Center = vec3.add(Center,Center,vec3.scale(temp,Up,-viewDelta));
-                Up = vec3.cross(Up,viewRight,vec3.subtract(lookAt,Center,Eye)); /* global side effect */
-            } else {
-                Eye = vec3.add(Eye,Eye,vec3.scale(temp,lookAt,viewDelta));
-                Center = vec3.add(Center,Center,vec3.scale(temp,lookAt,viewDelta));
-            } // end if shift not pressed
+        case "KeyW": // up
+            if (snake1.alive) {
+                var x = snake1[0][0];
+                var y = snake1[0][1];
+                var dir = getDir(x,y);
+                if(dir[1] != -1) {
+                    gameboard[y][x] = [0,1];
+                }
+            }
             break;
         case "KeyQ": // translate view up, rotate counterclockwise with shift
             if (event.getModifierState("Shift"))
@@ -473,22 +798,37 @@ function loadModels() {
 function loadTexture(texFile, texObj) {
     var tri = texObj.length;
     texObj[tri] = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texObj[tri]);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-              new Uint8Array([155, 155, 155, 255])); // gray
-    texObj[tri].image = new Image();
-    texObj[tri].image.crossOrigin = "Anonymous";
-    texObj[tri].image.onload = function(){
-        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+    if(texFile == "mint green") {
         gl.bindTexture(gl.TEXTURE_2D, texObj[tri]);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texObj[tri].image);
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER,  gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,  gl.NEAREST);
-        gl.bindTexture(gl.TEXTURE_2D, null);
-    } 
-    var url = "https://ncsucgclass.github.io/prog4/" + texFile;
-    texObj[tri].image.src = url;
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+              new Uint8Array([152, 255, 204, 255])); // mint green
+    } else if (texFile == "rose") {
+        gl.bindTexture(gl.TEXTURE_2D, texObj[tri]);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+              new Uint8Array([255, 152, 203, 255])); // rose
+    } else if (texFile == "white") {
+        gl.bindTexture(gl.TEXTURE_2D, texObj[tri]);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+              new Uint8Array([255, 255, 255, 255])); // white
+    } else {
+    
+        gl.bindTexture(gl.TEXTURE_2D, texObj[tri]);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+                  new Uint8Array([155, 155, 155, 255])); // gray
+        texObj[tri].image = new Image();
+        texObj[tri].image.crossOrigin = "Anonymous";
+        texObj[tri].image.onload = function(){
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+            gl.bindTexture(gl.TEXTURE_2D, texObj[tri]);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texObj[tri].image);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER,  gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,  gl.LINEAR);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+        } 
+        var url = "https://jtgill92.github.io/Snake3D/" + texFile;
+        texObj[tri].image.src = url;
+    }
 }
 
 // setup the webGL shaders
@@ -664,83 +1004,9 @@ function setupShaders() {
 
 // render the loaded model
 function renderModels() {
-    
-    // construct the model transform matrix, based on model state
-    function makeModelTransform(currModel) {
-        var zAxis = vec3.create(), sumRotation = mat4.create(), temp = mat4.create(), negCtr = vec3.create();
 
-        // move the model to the origin
-        mat4.fromTranslation(mMatrix,vec3.negate(negCtr,currModel.center)); 
-        
-        // scale for highlighting if needed
-        if (currModel.on)
-            mat4.multiply(mMatrix,mat4.fromScaling(temp,vec3.fromValues(1.2,1.2,1.2)),mMatrix); // S(1.2) * T(-ctr)
-        
-        // rotate the model to current interactive orientation
-        vec3.normalize(zAxis,vec3.cross(zAxis,currModel.xAxis,currModel.yAxis)); // get the new model z axis
-        mat4.set(sumRotation, // get the composite rotation
-            currModel.xAxis[0], currModel.yAxis[0], zAxis[0], 0,
-            currModel.xAxis[1], currModel.yAxis[1], zAxis[1], 0,
-            currModel.xAxis[2], currModel.yAxis[2], zAxis[2], 0,
-            0, 0,  0, 1);
-        mat4.multiply(mMatrix,sumRotation,mMatrix); // R(ax) * S(1.2) * T(-ctr)
-        
-        // translate back to model center
-        mat4.multiply(mMatrix,mat4.fromTranslation(temp,currModel.center),mMatrix); // T(ctr) * R(ax) * S(1.2) * T(-ctr)
-
-        // translate model to current interactive orientation
-        mat4.multiply(mMatrix,mat4.fromTranslation(temp,currModel.translation),mMatrix); // T(pos)*T(ctr)*R(ax)*S(1.2)*T(-ctr)
-        
-    } // end make model transform
-    
-    // var hMatrix = mat4.create(); // handedness matrix
-    var pMatrix = mat4.create(); // projection matrix
-    var vMatrix = mat4.create(); // view matrix
-    var mMatrix = mat4.create(); // model matrix
-    var pvMatrix = mat4.create(); // hand * proj * view matrices
-    var pvmMatrix = mat4.create(); // hand * proj * view * model matrices
-    
-    window.requestAnimationFrame(renderModels); // set up frame render callback
-    
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // clear frame/depth buffers
-    
-    // set up projection and view
-    // mat4.fromScaling(hMatrix,vec3.fromValues(-1,1,1)); // create handedness matrix
-    mat4.perspective(pMatrix,0.5*Math.PI,1,0.1,10); // create projection matrix
-    mat4.lookAt(vMatrix,Eye,Center,Up); // create view matrix
-    mat4.multiply(pvMatrix,pvMatrix,pMatrix); // projection
-    mat4.multiply(pvMatrix,pvMatrix,vMatrix); // projection * view
-
-    var orderedTriangles = [];
-    for (var tri=0; tri<transparentTriangles.length; tri++) {
-        var currSet = transparentTriangles[tri];
-
-        // make model transform, add to view project
-        makeModelTransform(currSet);
-        mat4.multiply(pvmMatrix,pvMatrix,mMatrix); // project * view * model
-
-        //var center = currSet.center;
-        currSet.worldPos = vec3.create();
-        vec3.transformMat4(currSet.worldPos, currSet.glCenter, pvmMatrix);
-
-        currSet.on = inputTriangles[currSet.whichSet].on;
-        currSet.material = inputTriangles[currSet.whichSet].material;
-
-        orderedTriangles[orderedTriangles.length] = currSet;
-
-    }
-    orderedTriangles.sort(function(a, b){return b.worldPos[2]-a.worldPos[2]});
-
-    var structuredTriangles = opaqueTriangles.concat(orderedTriangles);
-
-    // render each triangle set
-    var currSet; // the tri set and its material properties
-    /*for (var whichTriSet=0; whichTriSet<numTriangleSets; whichTriSet++) {
-        currSet = inputTriangles[whichTriSet];*/
-    for (var whichTriSet=0; whichTriSet<structuredTriangles.length; whichTriSet++) {
-        currSet = structuredTriangles[whichTriSet];    
-        // make model transform, add to view project
-        makeModelTransform(currSet);
+    function draw(currSet) {
+        // makeModelTransform(currSet);
         mat4.multiply(pvmMatrix,pvMatrix,mMatrix); // project * view * model
         gl.uniformMatrix4fv(mMatrixULoc, false, mMatrix); // pass in the m matrix
         gl.uniformMatrix4fv(pvmMatrixULoc, false, pvmMatrix); // pass in the hpvm matrix
@@ -782,10 +1048,104 @@ function renderModels() {
             //gl.depthMask(gl.GL_TRUE);
             // triangle buffer: activate and render
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,currSet.tbo); // activate
-            gl.drawElements(gl.TRIANGLES,3*triSetSizes[whichTriSet],gl.UNSIGNED_SHORT,0); // render
+            gl.drawElements(gl.TRIANGLES,3*currSet.triangles.length,gl.UNSIGNED_SHORT,0); // render
         }
+    }
+    
+    // construct the model transform matrix, based on model state
+    function makeModelTransform(currModel) {
+        var zAxis = vec3.create(), sumRotation = mat4.create(), temp = mat4.create(), negCtr = vec3.create();
+
+        // move the model to the origin
+        mat4.fromTranslation(mMatrix,vec3.negate(negCtr,currModel.center)); 
         
-    } // end for each triangle set
+        // scale for highlighting if needed
+        // if (currModel.on)
+            mat4.multiply(mMatrix,mat4.fromScaling(temp,vec3.fromValues(0.05,0.05,0.05)),mMatrix); // S(1.2) * T(-ctr)
+        
+        // rotate the model to current interactive orientation
+        vec3.normalize(zAxis,vec3.cross(zAxis,currModel.xAxis,currModel.yAxis)); // get the new model z axis
+        mat4.set(sumRotation, // get the composite rotation
+            currModel.xAxis[0], currModel.yAxis[0], zAxis[0], 0,
+            currModel.xAxis[1], currModel.yAxis[1], zAxis[1], 0,
+            currModel.xAxis[2], currModel.yAxis[2], zAxis[2], 0,
+            0, 0,  0, 1);
+        mat4.multiply(mMatrix,sumRotation,mMatrix); // R(ax) * S(1.2) * T(-ctr)
+        
+        // translate back to model center
+        mat4.multiply(mMatrix,mat4.fromTranslation(temp,currModel.center),mMatrix); // T(ctr) * R(ax) * S(1.2) * T(-ctr)
+
+        // translate model to current interactive orientation
+        mat4.multiply(mMatrix,mat4.fromTranslation(temp,currModel.translation),mMatrix); // T(pos)*T(ctr)*R(ax)*S(1.2)*T(-ctr)
+        
+    } // end make model transform
+    
+    // var hMatrix = mat4.create(); // handedness matrix
+    var pMatrix = mat4.create(); // projection matrix
+    var vMatrix = mat4.create(); // view matrix
+    var mMatrix = mat4.create(); // model matrix
+    var pvMatrix = mat4.create(); // hand * proj * view matrices
+    var pvmMatrix = mat4.create(); // hand * proj * view * model matrices
+    
+    window.requestAnimationFrame(renderModels); // set up frame render callback
+    elapsedTime = (new Date).getTime() - initialTime;
+    if (elapsedTime > animationRate) {
+        update();
+        initialTime = (new Date).getTime();
+    }
+    
+    
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // clear frame/depth buffers
+    
+    // set up projection and view
+    // mat4.fromScaling(hMatrix,vec3.fromValues(-1,1,1)); // create handedness matrix
+    mat4.perspective(pMatrix,0.5*Math.PI,1,0.1,10); // create projection matrix
+    mat4.lookAt(vMatrix,Eye,Center,Up); // create view matrix
+    mat4.multiply(pvMatrix,pvMatrix,pMatrix); // projection
+    mat4.multiply(pvMatrix,pvMatrix,vMatrix); // projection * view
+
+    var orderedTriangles = [];
+    for (var tri=0; tri<transparentTriangles.length; tri++) {
+        var currSet = transparentTriangles[tri];
+
+        // make model transform, add to view project
+        makeModelTransform(currSet);
+        mat4.multiply(pvmMatrix,pvMatrix,mMatrix); // project * view * model
+
+        //var center = currSet.center;
+        currSet.worldPos = vec3.create();
+        vec3.transformMat4(currSet.worldPos, currSet.glCenter, pvmMatrix);
+
+        currSet.on = inputTriangles[currSet.whichSet].on;
+        currSet.material = inputTriangles[currSet.whichSet].material;
+
+        orderedTriangles[orderedTriangles.length] = currSet;
+
+    }
+    orderedTriangles.sort(function(a, b){return b.worldPos[2]-a.worldPos[2]});
+
+    var structuredTriangles = opaqueTriangles.concat(orderedTriangles);
+
+    // render each triangle set
+
+    draw(gameboard.model);
+    for(var i = 0; i < snake1.length; i++) {
+        snake1.model.translation = vec3.fromValues((9 - (snake1[i][0]-.5))*.05,(snake1[i][1]-.5 - 9)*.05,.475);
+        makeModelTransform(snake1.model);
+        draw(snake1.model);
+    }
+    for(var i = 0; i < snake2.length; i++) {
+        snake2.model.translation = vec3.fromValues((9 - (snake2[i][0]-.5))*.05,(snake2[i][1]-.5 - 9)*.05,.475);
+        makeModelTransform(snake2.model);
+        draw(snake2.model);
+    }
+    if(food.alive) {
+        food.model.translation = vec3.fromValues((9 - (food[0][0]-.5))*.05,(food[0][1]-.5 - 9)*.05,.475);
+        makeModelTransform(food.model);
+        draw(food.model);
+    }
+
+
 } // end render model
 
 
@@ -796,6 +1156,7 @@ function main() {
   setupWebGL(); // set up the webGL environment
   loadModels(); // load in the models from tri file
   setupShaders(); // setup the webGL shaders
+  initGame()
   renderModels(); // draw the triangles using webGL
   
 } // end main

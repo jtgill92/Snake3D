@@ -1,3 +1,3 @@
-# prog4
+# Snake3D
 
-shell files for the intro cg class's fourth programming assignment
+The classic game of snake in 3D.

@@ -405,12 +405,6 @@ function handleKeyDown(event) {
     switch (event.code) {
         
         // move snake
-        case "Space": 
-            /*if (handleKeyDown.modelOn != null)
-                handleKeyDown.modelOn.on = false; // turn off highlighted model
-            handleKeyDown.modelOn = null; // no highlighted model
-            handleKeyDown.whichOn = -1; // nothing highlighted*/
-            break;
         case "ArrowLeft": // left
             if (snake1.alive){
                 var x = snake1[0][0];
@@ -494,114 +488,8 @@ function handleKeyDown(event) {
                 }
             }
             break;
-        case "KeyQ": // translate view up, rotate counterclockwise with shift
-            if (event.getModifierState("Shift"))
-                Up = vec3.normalize(Up,vec3.add(Up,Up,vec3.scale(temp,viewRight,-viewDelta)));
-            else {
-                Eye = vec3.add(Eye,Eye,vec3.scale(temp,Up,viewDelta));
-                Center = vec3.add(Center,Center,vec3.scale(temp,Up,viewDelta));
-            } // end if shift not pressed
-            break;
-        case "KeyE": // translate view down, rotate clockwise with shift
-            if (event.getModifierState("Shift"))
-                Up = vec3.normalize(Up,vec3.add(Up,Up,vec3.scale(temp,viewRight,viewDelta)));
-            else {
-                Eye = vec3.add(Eye,Eye,vec3.scale(temp,Up,-viewDelta));
-                Center = vec3.add(Center,Center,vec3.scale(temp,Up,-viewDelta));
-            } // end if shift not pressed
-            break;
-        case "Escape": // reset view to default
-            Eye = vec3.copy(Eye,defaultEye);
-            Center = vec3.copy(Center,defaultCenter);
-            Up = vec3.copy(Up,defaultUp);
-            break;
-            
-        // model transformation
-        case "KeyK": // translate left, rotate left with shift
-            if (event.getModifierState("Shift"))
-                rotateModel(Up,dirEnum.NEGATIVE);
-            else
-                translateModel(vec3.scale(temp,viewRight,viewDelta));
-            break;
-        case "Semicolon": // translate right, rotate right with shift
-            if (event.getModifierState("Shift"))
-                rotateModel(Up,dirEnum.POSITIVE);
-            else
-                translateModel(vec3.scale(temp,viewRight,-viewDelta));
-            break;
-        case "KeyL": // translate backward, rotate up with shift
-            if (event.getModifierState("Shift"))
-                rotateModel(viewRight,dirEnum.POSITIVE);
-            else
-                translateModel(vec3.scale(temp,lookAt,-viewDelta));
-            break;
-        case "KeyO": // translate forward, rotate down with shift
-            if (event.getModifierState("Shift"))
-                rotateModel(viewRight,dirEnum.NEGATIVE);
-            else
-                translateModel(vec3.scale(temp,lookAt,viewDelta));
-            break;
-        case "KeyI": // translate up, rotate counterclockwise with shift 
-            if (event.getModifierState("Shift"))
-                rotateModel(lookAt,dirEnum.POSITIVE);
-            else
-                translateModel(vec3.scale(temp,Up,viewDelta));
-            break;
-        case "KeyP": // translate down, rotate clockwise with shift
-            if (event.getModifierState("Shift"))
-                rotateModel(lookAt,dirEnum.NEGATIVE);
-            else
-                translateModel(vec3.scale(temp,Up,-viewDelta));
-            break;
-        case "KeyB":
-        		//Blinn_Phong = !Blinn_Phong;
-                Modulate = !Modulate;
-        	break;
-        case "KeyN":
-        		handleKeyDown.modelOn.material.n = (handleKeyDown.modelOn.material.n + 1)%20;
-        		console.log(handleKeyDown.modelOn.material.n);
-        	break;
-        case "Numpad1":
-        		vec3.add(handleKeyDown.modelOn.material.ambient, handleKeyDown.modelOn.material.ambient, vec3.fromValues(0.1,0.1,0.1));
-        		if(handleKeyDown.modelOn.material.ambient[0] > 1.0)
-        			handleKeyDown.modelOn.material.ambient[0] = 0;
-        		if(handleKeyDown.modelOn.material.ambient[1] > 1.0)
-        			handleKeyDown.modelOn.material.ambient[1] = 0;
-        		if(handleKeyDown.modelOn.material.ambient[2] > 1.0)
-        			handleKeyDown.modelOn.material.ambient[2] = 0;
-        		console.log(handleKeyDown.modelOn.material.ambient);
-        	break;
-        case "Numpad2":        		 
-        		vec3.add(handleKeyDown.modelOn.material.diffuse, handleKeyDown.modelOn.material.diffuse, vec3.fromValues(0.1,0.1,0.1));
-        		if(handleKeyDown.modelOn.material.diffuse[0] > 1.0)
-        			handleKeyDown.modelOn.material.diffuse[0] = 0;
-        		if(handleKeyDown.modelOn.material.diffuse[1] > 1.0)
-        			handleKeyDown.modelOn.material.diffuse[1] = 0;
-        		if(handleKeyDown.modelOn.material.diffuse[2] > 1.0)
-        			handleKeyDown.modelOn.material.diffuse[2] = 0;
-        		console.log(handleKeyDown.modelOn.material.diffuse);
-        	break;
-         case "Numpad3":        		 
-        		vec3.add(handleKeyDown.modelOn.material.specular, handleKeyDown.modelOn.material.specular, vec3.fromValues(0.1,0.1,0.1));
-        		if(handleKeyDown.modelOn.material.specular[0] > 1.0)
-        			handleKeyDown.modelOn.material.specular[0] = 0;
-        		if(handleKeyDown.modelOn.material.specular[1] > 1.0)
-        			handleKeyDown.modelOn.material.specular[1] = 0;
-        		if(handleKeyDown.modelOn.material.specular[2] > 1.0)
-        			handleKeyDown.modelOn.material.specular[2] = 0;
-        		console.log(handleKeyDown.modelOn.material.specular);
-        	break;
-        case "Backspace": // reset model transforms to default
-            for (var whichTriSet=0; whichTriSet<numTriangleSets; whichTriSet++) {
-                vec3.set(inputTriangles[whichTriSet].translation,0,0,0);
-                vec3.set(inputTriangles[whichTriSet].xAxis,1,0,0);
-                vec3.set(inputTriangles[whichTriSet].yAxis,0,1,0);
-            } // end for all triangle sets
-            for (var whichEllipsoid=0; whichEllipsoid<numEllipsoids; whichEllipsoid++) {
-                vec3.set(inputEllipsoids[whichEllipsoid].translation,0,0,0);
-                vec3.set(inputEllipsoids[whichTriSet].xAxis,1,0,0);
-                vec3.set(inputEllipsoids[whichTriSet].yAxis,0,1,0);
-            } // end for all ellipsoids
+        case "Backspace": // restart game
+            initGame();
             break;
     } // end switch
 } // end handleKeyDown

@@ -10,4 +10,4 @@ This program could be improved most notably by improving the AI. The AI I put in
 
 Also, I discovered one small bug that I didn’t have time to fix. Since the respawn locations are fixed, if you time it just right you can cause the AI snake to spawn inside yours and hilarity ensues. I’m not sure if this is a bug or feature at this point.
 
-Differences in browser implementations are causing the user input to not be reqgistered in the Edge browser. This can be resolved by using browser agnostic API calls for user input.
+Differences in browser implementations are causing the user input to not be registered in the Edge browser. This can be resolved possibly by using browser agnostic API calls for user input.
